@@ -163,8 +163,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: "Invalid input", details: error.errors }, { status: 400 });
+      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
-    return NextResponse.json({ error: error.message || "Internal error" }, { status: 500 });
+    console.error("[POST /api/bookings/create]", error);
+    return NextResponse.json({ error: "An internal error occurred" }, { status: 500 });
   }
 }

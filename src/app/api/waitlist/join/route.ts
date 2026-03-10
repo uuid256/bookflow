@@ -63,12 +63,13 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Invalid input", details: error.errors },
+        { error: "Invalid request" },
         { status: 400 }
       );
     }
+    console.error("[POST /api/waitlist/join]", error);
     return NextResponse.json(
-      { error: error.message || "Internal error" },
+      { error: "An internal error occurred" },
       { status: 500 }
     );
   }

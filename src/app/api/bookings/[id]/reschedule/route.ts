@@ -95,6 +95,7 @@ export async function POST(
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[POST /api/bookings/reschedule]", error);
+    return NextResponse.json({ error: "An internal error occurred" }, { status: 500 });
   }
 }

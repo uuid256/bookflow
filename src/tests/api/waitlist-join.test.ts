@@ -53,7 +53,7 @@ describe("POST /api/waitlist/join", () => {
     const res = await POST(makeRequest(bodyWithoutEmail));
     expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.error).toBe("Invalid input");
+    expect(body.error).toBe("Invalid request");
   });
 
   it("returns 404 when business not found", async () => {
