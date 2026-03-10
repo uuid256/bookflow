@@ -52,6 +52,8 @@ export async function POST(
     });
 
     const rescheduleWindowHours = settings?.rescheduleWindowHours ?? 24;
+    // TODO(med-6): Use settings.timezone to parse booking times correctly.
+    // Currently assumes server local time matches the business timezone.
     const bookingDateTime = new Date(`${booking.date}T${booking.startTime}:00`);
     const hoursUntil = (bookingDateTime.getTime() - Date.now()) / (1000 * 60 * 60);
 

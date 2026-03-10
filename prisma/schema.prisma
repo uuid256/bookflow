@@ -341,4 +341,9 @@ model Settings {
   autoConfirmBookings     Boolean @default(false)
   maxAdvanceBookingDays   Int  @default(30)
   minAdvanceBookingHours  Int  @default(1)
+  // IANA timezone string (e.g. "America/New_York"). Used to interpret
+  // appointment date/time strings stored in the Booking model. Defaults
+  // to UTC. Proper timezone-aware date handling should read this field
+  // before constructing Date objects from booking.date + booking.startTime.
+  timezone              String @default("UTC")
 }
