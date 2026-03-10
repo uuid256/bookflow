@@ -162,6 +162,7 @@ model Booking {
   totalAmount     Int      @default(0)
   cancellationReason String?
   notes           String?
+  deletedAt       DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

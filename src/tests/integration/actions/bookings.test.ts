@@ -251,18 +251,19 @@ describe("updateBookingStatus", () => {
 describe("deleteBooking", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    prismaMock.booking.deleteMany.mockResolvedValue({ count: 1 });
+    prismaMock.booking.updateMany.mockResolvedValue({ count: 1 });
   });
 
-  it("deletes a cancelled booking", async () => {
+  it("soft-deletes a cancelled booking by setting deletedAt", async () => {
     const result = await deleteBooking(BOOKING_ID);
     expect(result.success).toBe(true);
-    expect(prismaMock.booking.deleteMany).toHaveBeenCalledWith(
+    expect(prismaMock.booking.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           id: BOOKING_ID,
           status: { in: ["CANCELLED", "NO_SHOW"] },
         }),
+        data: expect.objectContaining({ deletedAt: expect.any(Date) }),
       })
     );
   });

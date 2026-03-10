@@ -136,8 +136,9 @@ export async function deleteBooking(bookingId: string) {
   const session = await requireAuth();
   const businessId = session.user.businessId;
 
-  await prisma.booking.deleteMany({
+  await prisma.booking.updateMany({
     where: { id: bookingId, businessId, status: { in: ["CANCELLED", "NO_SHOW"] } },
+    data: { deletedAt: new Date() },
   });
 
   revalidatePath("/admin/bookings");

@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
   const rescheduleWindowHours = settings?.rescheduleWindowHours ?? 24;
 
   const bookings = await prisma.booking.findMany({
-    where: { customerId: customer.id },
+    where: { customerId: customer.id, deletedAt: null },
     include: {
       service: { select: { name: true, durationMinutes: true } },
       staff: { select: { name: true } },
