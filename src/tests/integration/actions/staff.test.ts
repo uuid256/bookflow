@@ -21,7 +21,7 @@ function makeFormData(data: Record<string, string>): FormData {
 const validCreateFields = {
   name: "Bob Smith",
   email: "bob@example.com",
-  password: "secret123",
+  password: "Secret1@2024!",
   phone: "+1-555-1234",
   role: "STAFF",
   isActive: "true",
@@ -95,8 +95,15 @@ describe("createStaff", () => {
     expect(prismaMock.user.create).not.toHaveBeenCalled();
   });
 
-  it("returns error for password shorter than 6 characters", async () => {
+  it("returns error for weak password (too short)", async () => {
     const result = await createStaff(makeFormData({ ...validCreateFields, password: "abc" }));
+    expect(result.error).toBeDefined();
+    expect(prismaMock.user.create).not.toHaveBeenCalled();
+  });
+
+  it("returns error for password missing complexity requirements", async () => {
+    // Meets length but no uppercase/symbol
+    const result = await createStaff(makeFormData({ ...validCreateFields, password: "simplepassword1" }));
     expect(result.error).toBeDefined();
     expect(prismaMock.user.create).not.toHaveBeenCalled();
   });
