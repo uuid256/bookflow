@@ -1,160 +1,161 @@
-You are a senior full-stack engineer. Continue building my existing Appointment Booking System into a production-ready SaaS-ready platform.
+# BookFlow — Appointment Booking System
 
-Current stack:
-- Next.js (App Router)
-- TypeScript
-- Tailwind CSS
-- shadcn/ui
-- PostgreSQL
-- Prisma
+A full-featured, SaaS-ready appointment booking platform built with Next.js 15, TypeScript, Prisma, and SQLite.
 
-Important:
-- Do NOT rebuild from scratch
-- First inspect the existing codebase and understand current architecture
-- Preserve all working features
-- Extend the current system cleanly
-- Use scalable folder structure and good naming
-- Keep the code production-ready
-- Fix any type errors, build errors, lint issues, and broken imports along the way
+## Features
 
-Current completed features:
-- admin/staff login
-- service management
-- customer management
-- booking management
-- calendar/schedule view
-- customer booking page
-- booking status flow
-- reminder notification
-- business hours settings
-- overlapping booking prevention
-- responsive design
-- SaaS-ready architecture foundation
-- Phase 2 Feature 1 (online deposit / prepayment support) is already completed
+### Customer-facing
+- **Online booking wizard** — 5-step flow: service → date/time/staff → intake form + contact info → review → confirmation
+- **Staff selection** — choose a specific staff member or let the system auto-assign
+- **Self-service portal** — look up bookings by email, cancel or reschedule within policy windows
+- **Waitlist** — join a waitlist for fully-booked slots; auto-notified on cancellation
 
-Now continue implementation starting from PHASE 2 FEATURE 2 onward.
+### Admin panel
+- **Dashboard** — live overview of today's bookings and key metrics
+- **Booking management** — create, update status, delete bookings; full status lifecycle
+- **Calendar view** — day/week view of all scheduled appointments
+- **Customer management** — searchable customer directory with booking history
+- **Service management** — define services with duration, pricing, buffer times, and deposit rules
+- **Staff management** — create staff accounts, assign services, set working hours per day
+- **Package management** — session bundles with expiry; auto-deducted on booking completion
+- **Waitlist management** — view and manage pending waitlist entries
+- **Settings** — business hours per day, holidays, cancellation/reschedule windows, auto-confirm toggle
 
-PHASE 2 REMAINING FEATURES
-2. Customer self-service booking management
-   - Customers can view booking details
-   - Customers can reschedule booking
-   - Customers can cancel booking
-   - Respect cancellation/reschedule policy windows
-   - Prevent invalid status transitions
+### Business logic
+- **Buffer times** — configurable pre/post-service buffers prevent back-to-back conflicts
+- **Conflict detection** — overlapping bookings blocked for both business and per-staff
+- **Deposit support** — optional upfront deposits with PAID/REFUNDED tracking
+- **Status machine** — enforced transitions: PENDING → CONFIRMED → IN_PROGRESS → COMPLETED; CANCELLED/NO_SHOW
+- **Policy windows** — configurable hours required before a customer can cancel or reschedule
 
-3. Staff selection and assignment
-   - Customers can choose a staff member during booking
-   - If no staff is selected, system can auto-assign an available one
-   - Prevent double-booking per staff
-   - Support staff-specific working hours
+## Tech Stack
 
-4. Buffer time support
-   - Add before-buffer and after-buffer per service
-   - Use buffer when calculating slot availability
-   - Prevent bookings that violate buffer rules
+| Layer | Choice |
+|---|---|
+| Framework | Next.js 15 (App Router) |
+| Language | TypeScript |
+| Styling | Tailwind CSS v4 |
+| Components | shadcn/ui |
+| ORM | Prisma |
+| Database | SQLite (dev) |
+| Auth | NextAuth.js v4 (credentials + JWT) |
+| Validation | Zod |
+| Testing | Vitest + @vitest/coverage-v8 |
 
-5. Intake form before appointment
-   - Admin can configure intake questions per service
-   - Customer fills form during booking
-   - Support text, textarea, select, checkbox
-   - Save answers linked to booking
+## Getting Started
 
-PHASE 3 FEATURES
-6. Packages / memberships / courses
-   - Customers can purchase package plans
-   - Track remaining sessions
-   - Deduct usage automatically when booking is completed
-   - Prevent overuse when no remaining sessions exist
+### Prerequisites
+- Node.js 18+
+- npm
 
-7. Analytics dashboard
-   - total bookings
-   - completed bookings
-   - cancelled bookings
-   - no-show count
-   - revenue summary
-   - bookings by service
-   - bookings by staff
-   - peak booking times
-   - repeat customer count
-   - use clean dashboard cards and charts
+### Installation
 
-8. Waitlist system
-   - Allow customers to join waitlist for unavailable slots
-   - When a slot becomes free, notify eligible waitlist customers
-   - Add admin view for waitlist management
+```bash
+npm install
+```
 
-9. Multi-branch foundation
-   - Add branch-aware data model where needed
-   - Services, staff, bookings, business hours, holidays should support branch scope
-   - Update admin UI and filters to work with branches
+### Database setup
 
-10. Strengthen multi-tenant SaaS architecture
-   - Ensure all business-owned data is scoped by business_id
-   - Review access control for admin/staff/customer roles
-   - Prevent cross-business data leakage
-   - Prepare system for future subscription billing and white-label support
+```bash
+npx prisma generate
+npx prisma migrate dev --name init
+npx prisma db seed
+```
 
-DELIVERABLES
-Please implement everything completely and update the existing codebase with:
+### Run dev server
 
-1. Folder structure updates
-2. Prisma schema changes
-3. Prisma migrations
-4. Seed data updates
-5. Database relations and constraints
-6. API routes / server actions / services
-7. Validation with Zod
-8. Error handling and user-friendly messages
-9. Frontend pages and UI flows
-10. Reusable components
-11. Dashboard widgets and charts
-12. Status transition rules
-13. Notification hooks/placeholders
-14. Access control / authorization checks
-15. Loading states, empty states, and form states
-16. Mobile responsive UI
-17. Comments only where necessary
-18. Final cleanup so the project runs without errors
+```bash
+npm run dev
+```
 
-UI REQUIREMENTS
-- Use shadcn/ui components where appropriate
-- Keep design modern, clean, and professional
-- Make admin dashboard look premium
-- Make booking flow simple and fast
-- Ensure responsive layout for desktop, tablet, and mobile
+App runs at **http://localhost:3333**
 
-TECHNICAL REQUIREMENTS
-- Use Prisma best practices
-- Normalize database design appropriately
-- Add indexes where useful
-- Prevent race conditions in booking creation
-- Use transactional logic where needed
-- Keep business logic separated from UI
-- Use typed DTOs / schemas / interfaces
-- Use consistent status enums
-- Keep future Stripe, LINE, SMS, and Google Calendar integrations easy to add later
+### Demo credentials
 
-BOOKING LOGIC RULES
-- No overlapping bookings for the same staff
-- Respect service duration + buffer time
-- Respect business hours, staff hours, holidays, and branch context
-- Reschedule must revalidate slot availability
-- Cancellation must follow policy rules
-- Completed bookings can trigger package deduction and analytics updates
-- Deposit-required bookings should follow the existing payment logic already implemented
+| Role | Email | Password |
+|---|---|---|
+| Admin | admin@bookflow.demo | admin123 |
+| Staff | alice@bookflow.demo | staff123 |
 
-WHAT I WANT FROM YOU
-- First inspect the project and summarize what already exists
-- Then identify what has already been completed for Phase 2 Feature 1 and do not redo it
-- Then create a concrete implementation plan for the remaining features
-- Then implement the remaining features directly in the codebase
-- After implementation, review the project and fix inconsistencies
-- At the end, provide a summary of:
-  - files created
-  - files updated
-  - schema changes
-  - new routes
-  - major business rules added
-  - anything still mocked or left ready for future integration
+## Project Structure
 
-Do the work autonomously and thoroughly. Do not stop at planning only. Implement the actual code changes.
+```
+src/
+├── app/
+│   ├── admin/              # Admin panel (server components + server actions)
+│   │   ├── bookings/
+│   │   ├── calendar/
+│   │   ├── customers/
+│   │   ├── services/
+│   │   ├── staff/
+│   │   ├── packages/
+│   │   ├── waitlist/
+│   │   ├── branches/
+│   │   └── settings/
+│   ├── api/                # API routes (public + admin)
+│   │   ├── bookings/
+│   │   └── waitlist/
+│   ├── book/               # Public booking wizard
+│   └── my-bookings/        # Customer self-service
+├── lib/
+│   ├── auth.ts             # NextAuth config
+│   ├── auth-guard.ts       # Session helpers
+│   ├── booking-utils.ts    # Availability engine, status transitions
+│   ├── prisma.ts           # Prisma client singleton
+│   └── utils.ts            # Formatting helpers
+├── tests/
+│   ├── __mocks__/          # Prisma + auth mocks
+│   ├── fixtures.ts         # Shared test data factories
+│   ├── unit/               # Pure function tests
+│   ├── integration/        # Server action tests
+│   └── api/                # API route tests
+prisma/
+├── schema.prisma           # 14-model SQLite schema
+└── seed.ts                 # Demo data seeder
+```
+
+## Testing
+
+```bash
+npm test                  # Run all tests
+npm run test:watch        # Watch mode
+npm run test:coverage     # Coverage report (enforces ≥80% threshold)
+npm run test:ui           # Vitest UI
+```
+
+### Coverage baseline
+
+| Metric | Current |
+|---|---|
+| Statements | ~93% |
+| Branches | ~83% |
+| Functions | ~98% |
+| Lines | ~93% |
+
+265 tests across 17 test files. Coverage thresholds are enforced — PRs that drop below 80%/75% fail.
+
+## Data Model
+
+Key models in `prisma/schema.prisma`:
+
+- **Business** — top-level tenant; all data scoped by `businessId`
+- **Branch** — physical locations within a business
+- **User** — staff and admin accounts
+- **Service** — bookable services with duration, pricing, buffers
+- **Customer** — client records (name, email, phone)
+- **Booking** — appointment record with full status lifecycle
+- **BusinessHours** — open hours per day per branch
+- **Holiday** — closed dates
+- **StaffHours** — per-staff working hours
+- **Package** / **CustomerPackage** — session bundles
+- **WaitlistEntry** — queue for unavailable slots
+- **Notification** — outbound notification records
+- **Settings** — per-business configuration
+
+## Environment Variables
+
+```env
+DATABASE_URL="file:./dev.db"
+NEXTAUTH_URL="http://localhost:3333"
+NEXTAUTH_SECRET="your-secret-here"
+```
