@@ -51,6 +51,7 @@ export const authOptions: NextAuthOptions = {
           businessId: user.businessId,
           branchId: user.branchId,
           businessName: user.business.name,
+          isActive: user.isActive,
         };
       },
     }),
@@ -63,6 +64,7 @@ export const authOptions: NextAuthOptions = {
         token.businessId = (user as any).businessId;
         token.branchId = (user as any).branchId;
         token.businessName = (user as any).businessName;
+        token.isActive = (user as any).isActive;
       }
       return token;
     },
@@ -73,6 +75,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).businessId = token.businessId;
         (session.user as any).branchId = token.branchId;
         (session.user as any).businessName = token.businessName;
+        (session.user as any).isActive = token.isActive;
       }
       return session;
     },

@@ -5,6 +5,8 @@ import { authOptions } from "@/lib/auth";
 export async function requireAuth() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
+  // Reject sessions for deactivated accounts without a DB roundtrip
+  if ((session.user as any).isActive === false) redirect("/login");
   return session;
 }
 
