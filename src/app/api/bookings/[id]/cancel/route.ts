@@ -7,12 +7,29 @@ export async function POST(
 ) {
   const { id } = await params;
 
+  // Require caller to prove ownership via the booking's customer email
+  let email: string | undefined;
+  try {
+    const body = await request.json();
+    email = (body?.email as string)?.toLowerCase().trim();
+  } catch {
+    // no body or non-JSON content
+  }
+
+  if (!email) {
+    return NextResponse.json(
+      { error: "Email is required to cancel a booking" },
+      { status: 400 }
+    );
+  }
+
   const booking = await prisma.booking.findUnique({
     where: { id },
-    include: { service: true },
+    include: { customer: true },
   });
 
-  if (!booking) {
+  // Return 404 for both "not found" and "wrong email" so IDs can't be enumerated
+  if (!booking || booking.customer.email.toLowerCase() !== email) {
     return NextResponse.json({ error: "Booking not found" }, { status: 404 });
   }
 

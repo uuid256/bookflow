@@ -6,6 +6,8 @@ import { BOOKING_ID, BUSINESS_ID, STAFF_ID, makeBooking, makeSettings, makeServi
 
 const { POST } = await import("@/app/api/bookings/[id]/reschedule/route");
 
+const CUSTOMER_EMAIL = "jane@example.com"; // matches makeCustomer().email
+
 function makeRequest(body: object) {
   return new NextRequest("http://localhost/api/bookings/booking-001/reschedule", {
     method: "POST",
@@ -28,7 +30,7 @@ function futureDateStr(hoursFromNow: number) {
 }
 
 describe("POST /api/bookings/[id]/reschedule", () => {
-  const newDateTime = { date: "2026-05-01", startTime: "14:00" };
+  const newDateTime = { email: CUSTOMER_EMAIL, date: "2026-05-01", startTime: "14:00" };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -48,13 +50,25 @@ describe("POST /api/bookings/[id]/reschedule", () => {
     prismaMock.notification.create.mockResolvedValue({});
   });
 
+  it("returns 400 for missing email", async () => {
+    prismaMock.booking.findUnique.mockResolvedValue(
+      makeBooking({ status: "CONFIRMED", ...futureDateStr(48) })
+    );
+
+    const res = await POST(
+      makeRequest({ date: "2026-05-01", startTime: "10:00" }),
+      { params: makeParams() }
+    );
+    expect(res.status).toBe(400);
+  });
+
   it("returns 400 for invalid date format", async () => {
     prismaMock.booking.findUnique.mockResolvedValue(
       makeBooking({ status: "CONFIRMED", ...futureDateStr(48) })
     );
 
     const res = await POST(
-      makeRequest({ date: "not-a-date", startTime: "10:00" }),
+      makeRequest({ email: CUSTOMER_EMAIL, date: "not-a-date", startTime: "10:00" }),
       { params: makeParams() }
     );
     expect(res.status).toBe(400);
@@ -66,7 +80,7 @@ describe("POST /api/bookings/[id]/reschedule", () => {
     );
 
     const res = await POST(
-      makeRequest({ date: "2026-05-01", startTime: "bad-time" }),
+      makeRequest({ email: CUSTOMER_EMAIL, date: "2026-05-01", startTime: "bad-time" }),
       { params: makeParams() }
     );
     expect(res.status).toBe(400);
@@ -76,6 +90,18 @@ describe("POST /api/bookings/[id]/reschedule", () => {
     prismaMock.booking.findUnique.mockResolvedValue(null);
 
     const res = await POST(makeRequest(newDateTime), { params: makeParams() });
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 404 when email does not match booking owner", async () => {
+    prismaMock.booking.findUnique.mockResolvedValue(
+      makeBooking({ status: "CONFIRMED", ...futureDateStr(48), service: makeService() })
+    );
+
+    const res = await POST(
+      makeRequest({ email: "wrong@example.com", date: "2026-05-01", startTime: "14:00" }),
+      { params: makeParams() }
+    );
     expect(res.status).toBe(404);
   });
 
@@ -105,14 +131,13 @@ describe("POST /api/bookings/[id]/reschedule", () => {
     prismaMock.booking.findUnique.mockResolvedValue(
       makeBooking({ status: "CONFIRMED", ...futureDateStr(48), service: makeService() })
     );
-    // Slot is outside business hours for 2026-05-01 (Thursday, day 4)
     prismaMock.businessHours.findFirst.mockResolvedValue({
       id: "bh-1", businessId: BUSINESS_ID, branchId: null,
       dayOfWeek: 4, startTime: "09:00", endTime: "14:00", isClosed: false,
     });
 
     const res = await POST(
-      makeRequest({ date: "2026-05-01", startTime: "14:00" }), // exactly at closing
+      makeRequest({ email: CUSTOMER_EMAIL, date: "2026-05-01", startTime: "14:00" }),
       { params: makeParams() }
     );
     expect(res.status).toBe(409);
@@ -134,14 +159,17 @@ describe("POST /api/bookings/[id]/reschedule", () => {
       makeBooking({ status: "CONFIRMED", ...futureDateStr(48), service: makeService() })
     );
 
-    await POST(makeRequest({ date: "2026-05-01", startTime: "10:00" }), { params: makeParams() });
+    await POST(
+      makeRequest({ email: CUSTOMER_EMAIL, date: "2026-05-01", startTime: "10:00" }),
+      { params: makeParams() }
+    );
 
     expect(prismaMock.booking.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           date: "2026-05-01",
           startTime: "10:00",
-          endTime: "10:30", // 30-min service
+          endTime: "10:30",
         }),
       })
     );
@@ -166,7 +194,10 @@ describe("POST /api/bookings/[id]/reschedule", () => {
       makeBooking({ status: "CONFIRMED", ...futureDateStr(48), service: makeService() })
     );
 
-    await POST(makeRequest({ date: "2026-05-01", startTime: "10:00" }), { params: makeParams() });
+    await POST(
+      makeRequest({ email: CUSTOMER_EMAIL, date: "2026-05-01", startTime: "10:00" }),
+      { params: makeParams() }
+    );
 
     expect(prismaMock.booking.findMany).toHaveBeenCalledWith(
       expect.objectContaining({

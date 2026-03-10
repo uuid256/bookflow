@@ -4,6 +4,7 @@ import { z } from "zod";
 import { checkSlotAvailability, addMinutes } from "@/lib/booking-utils";
 
 const rescheduleSchema = z.object({
+  email: z.string().email(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   startTime: z.string().regex(/^\d{2}:\d{2}$/),
 });
@@ -20,10 +21,11 @@ export async function POST(
 
     const booking = await prisma.booking.findUnique({
       where: { id },
-      include: { service: true },
+      include: { service: true, customer: true },
     });
 
-    if (!booking) {
+    // Return 404 for both "not found" and "wrong email" so IDs can't be enumerated
+    if (!booking || booking.customer.email.toLowerCase() !== parsed.email.toLowerCase()) {
       return NextResponse.json({ error: "Booking not found" }, { status: 404 });
     }
 

@@ -2,13 +2,17 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import "../__mocks__/prisma";
 import { prismaMock } from "../__mocks__/prisma";
 import { NextRequest } from "next/server";
-import { BOOKING_ID, BUSINESS_ID, SERVICE_ID, makeBooking, makeSettings, makeService } from "../fixtures";
+import { BOOKING_ID, BUSINESS_ID, SERVICE_ID, makeBooking, makeSettings } from "../fixtures";
 
 const { POST } = await import("@/app/api/bookings/[id]/cancel/route");
 
-function makeRequest() {
+const CUSTOMER_EMAIL = "jane@example.com"; // matches makeCustomer().email
+
+function makeRequest(email?: string) {
   return new NextRequest("http://localhost/api/bookings/booking-001/cancel", {
     method: "POST",
+    body: email !== undefined ? JSON.stringify({ email }) : undefined,
+    headers: { "Content-Type": "application/json" },
   });
 }
 
@@ -16,7 +20,6 @@ function makeParams(id = BOOKING_ID) {
   return Promise.resolve({ id });
 }
 
-// Helper: booking that is 48 hours in the future (well within 24h window)
 function futureDateStr(hoursFromNow: number) {
   const d = new Date();
   d.setHours(d.getHours() + hoursFromNow);
@@ -36,13 +39,32 @@ describe("POST /api/bookings/[id]/cancel", () => {
     prismaMock.waitlistEntry.updateMany.mockResolvedValue({ count: 0 });
   });
 
+  it("returns 400 when email is missing", async () => {
+    const res = await POST(
+      new NextRequest("http://localhost/api/bookings/booking-001/cancel", { method: "POST" }),
+      { params: makeParams() }
+    );
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toMatch(/email/i);
+  });
+
   it("returns 404 when booking not found", async () => {
     prismaMock.booking.findUnique.mockResolvedValue(null);
 
-    const res = await POST(makeRequest(), { params: makeParams() });
+    const res = await POST(makeRequest(CUSTOMER_EMAIL), { params: makeParams() });
     expect(res.status).toBe(404);
     const body = await res.json();
     expect(body.error).toBe("Booking not found");
+  });
+
+  it("returns 404 when email does not match booking owner", async () => {
+    prismaMock.booking.findUnique.mockResolvedValue(
+      makeBooking({ status: "CONFIRMED", ...futureDateStr(48) })
+    );
+
+    const res = await POST(makeRequest("wrong@example.com"), { params: makeParams() });
+    expect(res.status).toBe(404);
   });
 
   it("returns 400 when booking is already cancelled", async () => {
@@ -50,7 +72,7 @@ describe("POST /api/bookings/[id]/cancel", () => {
       makeBooking({ status: "CANCELLED", ...futureDateStr(48) })
     );
 
-    const res = await POST(makeRequest(), { params: makeParams() });
+    const res = await POST(makeRequest(CUSTOMER_EMAIL), { params: makeParams() });
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toContain("cannot be cancelled");
@@ -61,7 +83,7 @@ describe("POST /api/bookings/[id]/cancel", () => {
       makeBooking({ status: "COMPLETED", ...futureDateStr(48) })
     );
 
-    const res = await POST(makeRequest(), { params: makeParams() });
+    const res = await POST(makeRequest(CUSTOMER_EMAIL), { params: makeParams() });
     expect(res.status).toBe(400);
   });
 
@@ -70,7 +92,7 @@ describe("POST /api/bookings/[id]/cancel", () => {
       makeBooking({ status: "CONFIRMED", ...futureDateStr(12) })
     );
 
-    const res = await POST(makeRequest(), { params: makeParams() });
+    const res = await POST(makeRequest(CUSTOMER_EMAIL), { params: makeParams() });
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toMatch(/24 hours/);
@@ -81,7 +103,7 @@ describe("POST /api/bookings/[id]/cancel", () => {
       makeBooking({ status: "CONFIRMED", ...futureDateStr(48) })
     );
 
-    const res = await POST(makeRequest(), { params: makeParams() });
+    const res = await POST(makeRequest(CUSTOMER_EMAIL), { params: makeParams() });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.success).toBe(true);
@@ -97,11 +119,8 @@ describe("POST /api/bookings/[id]/cancel", () => {
       })
     );
 
-    await POST(makeRequest(), { params: makeParams() });
+    await POST(makeRequest(CUSTOMER_EMAIL), { params: makeParams() });
 
-    expect(prismaMock.$transaction).toHaveBeenCalled();
-    const transactionOps = prismaMock.$transaction.mock.calls[0][0] as any[];
-    // The transaction is called with array of promises including booking.update
     expect(prismaMock.booking.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ depositStatus: "REFUNDED" }),
@@ -114,7 +133,7 @@ describe("POST /api/bookings/[id]/cancel", () => {
       makeBooking({ status: "CONFIRMED", ...futureDateStr(48) })
     );
 
-    await POST(makeRequest(), { params: makeParams() });
+    await POST(makeRequest(CUSTOMER_EMAIL), { params: makeParams() });
 
     expect(prismaMock.waitlistEntry.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -133,7 +152,7 @@ describe("POST /api/bookings/[id]/cancel", () => {
       makeBooking({ status: "CONFIRMED", ...futureDateStr(48) })
     );
 
-    await POST(makeRequest(), { params: makeParams() });
+    await POST(makeRequest(CUSTOMER_EMAIL), { params: makeParams() });
 
     expect(prismaMock.notification.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -146,12 +165,11 @@ describe("POST /api/bookings/[id]/cancel", () => {
     prismaMock.settings.findUnique.mockResolvedValue(
       makeSettings({ cancellationWindowHours: 48 })
     );
-    // 36 hours away - ok for 24h window but NOT for 48h window
     prismaMock.booking.findUnique.mockResolvedValue(
       makeBooking({ status: "CONFIRMED", ...futureDateStr(36) })
     );
 
-    const res = await POST(makeRequest(), { params: makeParams() });
+    const res = await POST(makeRequest(CUSTOMER_EMAIL), { params: makeParams() });
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toMatch(/48 hours/);

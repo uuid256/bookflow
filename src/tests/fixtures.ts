@@ -79,6 +79,7 @@ export function makeBooking(overrides = {}) {
     createdAt: new Date("2026-01-01"),
     updatedAt: new Date("2026-01-01"),
     service: makeService(),
+    customer: makeCustomer(),
     ...overrides,
   };
 }
