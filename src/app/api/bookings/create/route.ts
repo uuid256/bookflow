@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { checkSlotAvailability, addMinutes } from "@/lib/booking-utils";
 import { isAllowed, getClientIp } from "@/lib/rate-limit";
+import { isValidOrigin } from "@/lib/csrf";
 
 const bookingRequestSchema = z.object({
   businessSlug: z.string().min(1, "businessSlug is required"),
@@ -21,6 +22,10 @@ const bookingRequestSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  if (!isValidOrigin(request)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   // 10 booking attempts per IP per 10 minutes
   if (!isAllowed(`create:${getClientIp(request)}`, 10, 10 * 60_000)) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });

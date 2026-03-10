@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isAllowed, getClientIp } from "@/lib/rate-limit";
+import { isValidOrigin } from "@/lib/csrf";
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+
+  if (!isValidOrigin(request)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   // 10 cancel attempts per IP per 10 minutes
   if (!isAllowed(`cancel:${getClientIp(request)}`, 10, 10 * 60_000)) {

@@ -35,3 +35,8 @@ vi.mock("@/lib/rate-limit", () => ({
   isAllowed: vi.fn(() => true),
   getClientIp: vi.fn(() => "127.0.0.1"),
 }));
+
+// Mock CSRF — always pass in tests (origin headers absent in unit tests)
+vi.mock("@/lib/csrf", () => ({
+  isValidOrigin: vi.fn(() => true),
+}));

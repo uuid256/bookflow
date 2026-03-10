@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { checkSlotAvailability, addMinutes } from "@/lib/booking-utils";
 import { isAllowed, getClientIp } from "@/lib/rate-limit";
+import { isValidOrigin } from "@/lib/csrf";
 
 const rescheduleSchema = z.object({
   email: z.string().email(),
@@ -15,6 +16,10 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+
+  if (!isValidOrigin(request)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   // 10 reschedule attempts per IP per 10 minutes
   if (!isAllowed(`reschedule:${getClientIp(request)}`, 10, 10 * 60_000)) {
