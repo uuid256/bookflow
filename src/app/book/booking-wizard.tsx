@@ -125,6 +125,11 @@ export function BookingWizard({ businessSlug, services }: BookingWizardProps) {
 
       setBookingResult(data);
       setStep(4);
+      // Clear PII from React state once the booking is confirmed
+      setName("");
+      setEmail("");
+      setPhone("");
+      setNotes("");
       toast.success("Booking created successfully!");
     } catch (err: any) {
       toast.error(err.message);
