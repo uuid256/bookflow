@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
 const joinWaitlistSchema = z.object({
-  businessSlug: z.string().default("bookflow-demo"),
+  businessSlug: z.string().min(1, "businessSlug is required"),
   email: z.string().email(),
   name: z.string().min(1),
   serviceId: z.string().min(1),

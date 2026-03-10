@@ -4,7 +4,7 @@ import { z } from "zod";
 import { checkSlotAvailability, addMinutes } from "@/lib/booking-utils";
 
 const bookingRequestSchema = z.object({
-  businessSlug: z.string().default("bookflow-demo"),
+  businessSlug: z.string().min(1, "businessSlug is required"),
   serviceId: z.string().min(1),
   staffId: z.string().optional().nullable(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
