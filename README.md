@@ -2,6 +2,8 @@
 
 A full-featured, SaaS-ready appointment booking platform built with Next.js 15, TypeScript, Prisma, and SQLite.
 
+> ⚠️ **Security:** A static code analysis has been completed. See [docs/security-assessment.md](docs/security-assessment.md) for the full report (2 critical, 3 high, 12 medium findings). **Do not deploy to production until Critical and High items are resolved.**
+
 ## Features
 
 ### Customer-facing
