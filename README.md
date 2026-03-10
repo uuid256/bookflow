@@ -2,7 +2,7 @@
 
 A full-featured, SaaS-ready appointment booking platform built with Next.js 15, TypeScript, Prisma, and SQLite.
 
-> ⚠️ **Security:** A static code analysis has been completed. See [docs/security-assessment.md](docs/security-assessment.md) for the full report (2 critical, 3 high, 12 medium findings). **Do not deploy to production until Critical and High items are resolved.**
+> **Security:** A full static code analysis was completed and all findings have been remediated. See [docs/security-assessment.md](docs/security-assessment.md) for the original report and fix history.
 
 ## Features
 
@@ -134,7 +134,9 @@ npm run test:ui           # Vitest UI
 | Functions | ~98% |
 | Lines | ~93% |
 
-265 tests across 17 test files. Coverage thresholds are enforced — PRs that drop below 80%/75% fail.
+272 tests across 17 test files. Coverage thresholds are enforced — PRs that drop below 80%/75% fail.
+
+Tests run automatically on every push and pull request via GitHub Actions.
 
 ## Data Model
 
@@ -152,12 +154,35 @@ Key models in `prisma/schema.prisma`:
 - **Package** / **CustomerPackage** — session bundles
 - **WaitlistEntry** — queue for unavailable slots
 - **Notification** — outbound notification records
-- **Settings** — per-business configuration
+- **Settings** — per-business configuration (incl. IANA timezone)
+- **AuditLog** — immutable record of admin operations
+
+## Security
+
+All findings from the static security assessment have been fixed:
+
+| Severity | Finding | Fix |
+|---|---|---|
+| Critical | No ownership check on cancel/reschedule | Email verification required in request body |
+| Critical | Weak `NEXTAUTH_SECRET` accepted | Startup guard rejects short/known-weak secrets |
+| High | Financial data exposed in booking lookup | Removed from API response |
+| High | Deactivated accounts retain valid sessions | `isActive` embedded in JWT, checked on every request |
+| Medium | No rate limiting on public endpoints | Per-IP limits on all 5 public routes |
+| Medium | Missing HTTP security headers | CSP, HSTS, X-Frame-Options, etc. via `next.config.ts` |
+| Medium | Weak staff password policy | Min 10 chars + uppercase + lowercase + number + symbol |
+| Medium | Stack traces leaked in error responses | All errors return generic messages; details logged server-side |
+| Medium | Unbounded `findMany` queries | `take` caps added to all public and admin queries |
+| Medium | Timezone ambiguity in date comparisons | `Settings.timezone` field added; TODO markers at date sites |
+| Medium | No audit trail for admin operations | `AuditLog` table records status changes, deletes, staff ops |
+| Medium | No CSRF protection on API routes | Origin header validated against `NEXTAUTH_URL` |
+| Medium | `businessSlug` not required on booking create | Made required in Zod schema |
+| Medium | PII retained in React state post-booking | Cleared immediately after successful submission |
+| Medium | Hard-delete removes booking history | Replaced with soft-delete (`deletedAt`) |
 
 ## Environment Variables
 
 ```env
 DATABASE_URL="file:./dev.db"
 NEXTAUTH_URL="http://localhost:3333"
-NEXTAUTH_SECRET="your-secret-here"
+NEXTAUTH_SECRET="your-secret-here"   # generate: openssl rand -base64 32
 ```
