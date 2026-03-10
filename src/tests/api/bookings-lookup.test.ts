@@ -45,6 +45,20 @@ describe("GET /api/bookings/lookup", () => {
     expect(body.error).toBe("Email is required");
   });
 
+  it("returns 400 for invalid email format", async () => {
+    const res = await GET(makeRequest({ email: "not-an-email" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("does not expose financial fields in response", async () => {
+    const res = await GET(makeRequest({ email: "jane@example.com" }));
+    const body = await res.json();
+    const booking = body.bookings[0];
+    expect(booking.totalAmount).toBeUndefined();
+    expect(booking.depositAmount).toBeUndefined();
+    expect(booking.depositStatus).toBeUndefined();
+  });
+
   it("returns empty bookings when customer not found", async () => {
     prismaMock.customer.findFirst.mockResolvedValue(null);
 

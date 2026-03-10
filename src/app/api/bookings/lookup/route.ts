@@ -1,17 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+// Limit how many bookings are returned per request
+const MAX_BOOKINGS = 50;
+
 export async function GET(request: NextRequest) {
   const email = request.nextUrl.searchParams.get("email");
   if (!email) {
     return NextResponse.json({ error: "Email is required" }, { status: 400 });
   }
 
+  // Basic email format guard before hitting the database
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
+  }
+
   const customer = await prisma.customer.findFirst({
-    where: { email },
+    where: { email: email.toLowerCase() },
   });
 
   if (!customer) {
+    // Return empty list — do not confirm whether the email exists
     return NextResponse.json({ bookings: [] });
   }
 
@@ -25,10 +34,11 @@ export async function GET(request: NextRequest) {
   const bookings = await prisma.booking.findMany({
     where: { customerId: customer.id },
     include: {
-      service: true,
+      service: { select: { name: true, durationMinutes: true } },
       staff: { select: { name: true } },
     },
     orderBy: [{ date: "desc" }, { startTime: "desc" }],
+    take: MAX_BOOKINGS,
   });
 
   const now = new Date();
@@ -44,13 +54,11 @@ export async function GET(request: NextRequest) {
       startTime: b.startTime,
       endTime: b.endTime,
       status: b.status,
-      totalAmount: b.totalAmount,
-      depositAmount: b.depositAmount,
-      depositStatus: b.depositStatus,
-      service: { name: b.service.name, durationMinutes: b.service.durationMinutes },
+      service: b.service,
       staff: b.staff ? { name: b.staff.name } : null,
       canCancel: isFutureAndActive && hoursUntilBooking >= cancellationWindowHours,
       canReschedule: isFutureAndActive && hoursUntilBooking >= rescheduleWindowHours,
+      // Financial details omitted — not required for self-service portal
     };
   });
 
