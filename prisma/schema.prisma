@@ -347,3 +347,18 @@ model Settings {
   // before constructing Date objects from booking.date + booking.startTime.
   timezone              String @default("UTC")
 }
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  businessId   String
+  userId       String
+  action       String   // e.g. "booking.status_changed", "staff.created"
+  resourceType String   // e.g. "Booking", "User"
+  resourceId   String
+  details      String?  // JSON-encoded context (old/new values, etc.)
+  createdAt    DateTime @default(now())
+
+  @@index([businessId])
+  @@index([userId])
+  @@index([resourceType, resourceId])
+}

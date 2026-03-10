@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin, getBusinessId } from "@/lib/auth-guard";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { logAudit } from "@/lib/audit";
 
 const createStaffSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -56,7 +57,7 @@ export async function createStaff(formData: FormData) {
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 10);
 
-  await prisma.user.create({
+  const newUser = await prisma.user.create({
     data: {
       businessId,
       name: parsed.data.name,
@@ -66,6 +67,15 @@ export async function createStaff(formData: FormData) {
       role: parsed.data.role,
       isActive: parsed.data.isActive,
     },
+  });
+
+  await logAudit({
+    businessId,
+    userId: session.user.id as string,
+    action: "staff.created",
+    resourceType: "User",
+    resourceId: newUser.id,
+    details: { name: parsed.data.name, email: parsed.data.email, role: parsed.data.role },
   });
 
   revalidatePath("/admin/staff");
@@ -141,6 +151,15 @@ export async function deleteStaff(id: string) {
   }
 
   await prisma.user.delete({ where: { id } });
+
+  await logAudit({
+    businessId,
+    userId: session.user.id as string,
+    action: "staff.deleted",
+    resourceType: "User",
+    resourceId: id,
+    details: { name: user.name, email: user.email },
+  });
 
   revalidatePath("/admin/staff");
   return { success: true };

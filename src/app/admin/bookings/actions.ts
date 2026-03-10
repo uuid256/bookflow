@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth-guard";
 import { revalidatePath } from "next/cache";
 import { canTransition, checkSlotAvailability } from "@/lib/booking-utils";
+import { logAudit } from "@/lib/audit";
 import { z } from "zod";
 
 const bookingSchema = z.object({
@@ -127,6 +128,15 @@ export async function updateBookingStatus(bookingId: string, newStatus: string) 
     await notifyWaitlist(businessId, booking.serviceId, booking.date);
   }
 
+  await logAudit({
+    businessId,
+    userId: session.user.id as string,
+    action: "booking.status_changed",
+    resourceType: "Booking",
+    resourceId: bookingId,
+    details: { from: booking.status, to: newStatus },
+  });
+
   revalidatePath("/admin/bookings");
   revalidatePath("/admin/calendar");
   return { success: true };
@@ -139,6 +149,14 @@ export async function deleteBooking(bookingId: string) {
   await prisma.booking.updateMany({
     where: { id: bookingId, businessId, status: { in: ["CANCELLED", "NO_SHOW"] } },
     data: { deletedAt: new Date() },
+  });
+
+  await logAudit({
+    businessId,
+    userId: session.user.id as string,
+    action: "booking.deleted",
+    resourceType: "Booking",
+    resourceId: bookingId,
   });
 
   revalidatePath("/admin/bookings");
