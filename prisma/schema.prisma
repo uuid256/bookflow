@@ -1,0 +1,343 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Business {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  email     String?
+  phone     String?
+  address   String?
+  timezone  String   @default("America/New_York")
+  currency  String   @default("USD")
+  logoUrl   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users         User[]
+  services      Service[]
+  customers     Customer[]
+  bookings      Booking[]
+  businessHours BusinessHours[]
+  holidays      Holiday[]
+  branches      Branch[]
+  packages      Package[]
+  waitlistEntries WaitlistEntry[]
+}
+
+model Branch {
+  id         String   @id @default(uuid())
+  businessId String
+  name       String
+  address    String?
+  phone      String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  business      Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  services      Service[]
+  staff         User[]
+  bookings      Booking[]
+  businessHours BusinessHours[]
+  holidays      Holiday[]
+
+  @@index([businessId])
+}
+
+model User {
+  id           String   @id @default(uuid())
+  businessId   String
+  branchId     String?
+  email        String   @unique
+  passwordHash String
+  name         String
+  phone        String?
+  role         String   @default("STAFF") // ADMIN, STAFF
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  business       Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branch         Branch?         @relation(fields: [branchId], references: [id])
+  bookings       Booking[]
+  staffHours     StaffHours[]
+  staffServices  StaffService[]
+
+  @@index([businessId])
+  @@index([branchId])
+}
+
+model StaffHours {
+  id        String  @id @default(uuid())
+  userId    String
+  dayOfWeek Int     // 0=Sunday, 6=Saturday
+  startTime String  // "09:00"
+  endTime   String  // "17:00"
+  isActive  Boolean @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dayOfWeek])
+  @@index([userId])
+}
+
+model StaffService {
+  id        String @id @default(uuid())
+  userId    String
+  serviceId String
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, serviceId])
+}
+
+model Service {
+  id              String  @id @default(uuid())
+  businessId      String
+  branchId        String?
+  name            String
+  description     String?
+  durationMinutes Int
+  price           Int     // in cents
+  depositAmount   Int     @default(0) // in cents, 0 = no deposit required
+  depositPercent  Int?    // alternative: deposit as percentage
+  bufferBefore    Int     @default(0) // minutes before
+  bufferAfter     Int     @default(0) // minutes after
+  isActive        Boolean @default(true)
+  sortOrder       Int     @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  business       Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branch         Branch?         @relation(fields: [branchId], references: [id])
+  bookings       Booking[]
+  intakeQuestions IntakeQuestion[]
+  staffServices  StaffService[]
+  packageServices PackageService[]
+
+  @@index([businessId])
+  @@index([branchId])
+}
+
+model Customer {
+  id         String   @id @default(uuid())
+  businessId String
+  email      String
+  name       String
+  phone      String?
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  business          Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  bookings          Booking[]
+  customerPackages  CustomerPackage[]
+  waitlistEntries   WaitlistEntry[]
+
+  @@unique([businessId, email])
+  @@index([businessId])
+}
+
+model Booking {
+  id              String   @id @default(uuid())
+  businessId      String
+  branchId        String?
+  serviceId       String
+  customerId      String
+  staffId         String?
+  date            String   // "2024-03-15"
+  startTime       String   // "09:00"
+  endTime         String   // "09:30"
+  status          String   @default("PENDING") // PENDING, CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED, NO_SHOW
+  depositStatus   String   @default("NONE") // NONE, PENDING, PAID, REFUNDED
+  depositAmount   Int      @default(0)
+  totalAmount     Int      @default(0)
+  cancellationReason String?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  business        Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branch          Branch?           @relation(fields: [branchId], references: [id])
+  service         Service           @relation(fields: [serviceId], references: [id])
+  customer        Customer          @relation(fields: [customerId], references: [id])
+  staff           User?             @relation(fields: [staffId], references: [id])
+  intakeAnswers   IntakeAnswer[]
+  notifications   Notification[]
+  packageUsage    PackageUsage[]
+
+  @@index([businessId])
+  @@index([branchId])
+  @@index([serviceId])
+  @@index([customerId])
+  @@index([staffId])
+  @@index([date])
+  @@index([status])
+}
+
+model BusinessHours {
+  id         String  @id @default(uuid())
+  businessId String
+  branchId   String?
+  dayOfWeek  Int     // 0=Sunday, 6=Saturday
+  startTime  String  // "09:00"
+  endTime    String  // "17:00"
+  isClosed   Boolean @default(false)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branch   Branch?  @relation(fields: [branchId], references: [id])
+
+  @@unique([businessId, branchId, dayOfWeek])
+  @@index([businessId])
+}
+
+model Holiday {
+  id         String  @id @default(uuid())
+  businessId String
+  branchId   String?
+  date       String  // "2024-12-25"
+  name       String
+  isClosed   Boolean @default(true)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branch   Branch?  @relation(fields: [branchId], references: [id])
+
+  @@index([businessId])
+}
+
+model IntakeQuestion {
+  id         String  @id @default(uuid())
+  serviceId  String
+  label      String
+  type       String  // TEXT, TEXTAREA, SELECT, CHECKBOX
+  options    String? // JSON array for SELECT options
+  isRequired Boolean @default(false)
+  sortOrder  Int     @default(0)
+
+  service Service       @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  answers IntakeAnswer[]
+
+  @@index([serviceId])
+}
+
+model IntakeAnswer {
+  id         String @id @default(uuid())
+  bookingId  String
+  questionId String
+  answer     String
+
+  booking  Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  question IntakeQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([bookingId, questionId])
+  @@index([bookingId])
+}
+
+model Package {
+  id            String   @id @default(uuid())
+  businessId    String
+  name          String
+  description   String?
+  totalSessions Int
+  price         Int      // in cents
+  validDays     Int      @default(365) // validity period in days
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  business         Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  packageServices  PackageService[]
+  customerPackages CustomerPackage[]
+
+  @@index([businessId])
+}
+
+model PackageService {
+  id        String @id @default(uuid())
+  packageId String
+  serviceId String
+
+  package Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([packageId, serviceId])
+}
+
+model CustomerPackage {
+  id                String   @id @default(uuid())
+  customerId        String
+  packageId         String
+  remainingSessions Int
+  purchasedAt       DateTime @default(now())
+  expiresAt         DateTime
+  status            String   @default("ACTIVE") // ACTIVE, EXPIRED, EXHAUSTED
+
+  customer     Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  package      Package        @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  packageUsage PackageUsage[]
+
+  @@index([customerId])
+  @@index([packageId])
+}
+
+model PackageUsage {
+  id                String   @id @default(uuid())
+  customerPackageId String
+  bookingId         String
+  usedAt            DateTime @default(now())
+
+  customerPackage CustomerPackage @relation(fields: [customerPackageId], references: [id], onDelete: Cascade)
+  booking         Booking         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@unique([customerPackageId, bookingId])
+}
+
+model WaitlistEntry {
+  id           String   @id @default(uuid())
+  businessId   String
+  customerId   String
+  serviceId    String
+  preferredDate String
+  preferredTime String?
+  status       String   @default("WAITING") // WAITING, NOTIFIED, BOOKED, CANCELLED
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@index([customerId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  bookingId String
+  type      String   // CONFIRMATION, REMINDER, CANCELLATION, RESCHEDULE, WAITLIST
+  channel   String   @default("EMAIL") // EMAIL, SMS, LINE
+  status    String   @default("PENDING") // PENDING, SENT, FAILED
+  sentAt    DateTime?
+  createdAt DateTime @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+}
+
+model Settings {
+  id                    String @id @default(uuid())
+  businessId            String @unique
+  cancellationWindowHours Int  @default(24)
+  rescheduleWindowHours   Int  @default(24)
+  autoConfirmBookings     Boolean @default(false)
+  maxAdvanceBookingDays   Int  @default(30)
+  minAdvanceBookingHours  Int  @default(1)
+}
