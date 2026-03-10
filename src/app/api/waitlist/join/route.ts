@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { isAllowed, getClientIp } from "@/lib/rate-limit";
 
 const joinWaitlistSchema = z.object({
   businessSlug: z.string().min(1, "businessSlug is required"),
@@ -12,6 +13,11 @@ const joinWaitlistSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // 5 waitlist joins per IP per 10 minutes
+  if (!isAllowed(`waitlist:${getClientIp(request)}`, 5, 10 * 60_000)) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   try {
     const body = await request.json();
     const parsed = joinWaitlistSchema.parse(body);

@@ -29,3 +29,9 @@ vi.mock("next-auth", () => ({
   default: vi.fn(),
   getServerSession: vi.fn(),
 }));
+
+// Mock rate-limit — always allow in tests so limits don't bleed between cases
+vi.mock("@/lib/rate-limit", () => ({
+  isAllowed: vi.fn(() => true),
+  getClientIp: vi.fn(() => "127.0.0.1"),
+}));

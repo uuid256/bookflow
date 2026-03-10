@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isAllowed, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+
+  // 10 cancel attempts per IP per 10 minutes
+  if (!isAllowed(`cancel:${getClientIp(request)}`, 10, 10 * 60_000)) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
 
   // Require caller to prove ownership via the booking's customer email
   let email: string | undefined;

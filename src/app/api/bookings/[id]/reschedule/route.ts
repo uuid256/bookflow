@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { checkSlotAvailability, addMinutes } from "@/lib/booking-utils";
+import { isAllowed, getClientIp } from "@/lib/rate-limit";
 
 const rescheduleSchema = z.object({
   email: z.string().email(),
@@ -14,6 +15,11 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+
+  // 10 reschedule attempts per IP per 10 minutes
+  if (!isAllowed(`reschedule:${getClientIp(request)}`, 10, 10 * 60_000)) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
 
   try {
     const body = await request.json();

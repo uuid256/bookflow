@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isAllowed, getClientIp } from "@/lib/rate-limit";
 
 // Limit how many bookings are returned per request
 const MAX_BOOKINGS = 50;
 
 export async function GET(request: NextRequest) {
+  // 20 lookups per IP per 5 minutes
+  if (!isAllowed(`lookup:${getClientIp(request)}`, 20, 5 * 60_000)) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   const email = request.nextUrl.searchParams.get("email");
   if (!email) {
     return NextResponse.json({ error: "Email is required" }, { status: 400 });
