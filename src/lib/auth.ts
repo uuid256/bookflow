@@ -3,6 +3,21 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
+const KNOWN_WEAK_SECRETS = new Set([
+  "super-secret-change-in-production",
+  "secret",
+  "nextauth_secret",
+  "changeme",
+]);
+
+const secret = process.env.NEXTAUTH_SECRET ?? "";
+if (!secret || secret.length < 32 || KNOWN_WEAK_SECRETS.has(secret)) {
+  throw new Error(
+    "[auth] NEXTAUTH_SECRET is missing or insecure. " +
+    "Generate one with: openssl rand -base64 32"
+  );
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
