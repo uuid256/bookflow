@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
       const staffServices = await prisma.staffService.findMany({
         where: { serviceId: parsed.serviceId },
         include: { user: true },
+        take: 100,
       });
 
       for (const ss of staffServices) {

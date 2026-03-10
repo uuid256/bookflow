@@ -157,6 +157,7 @@ async function findAvailableStaff(
   const staffServices = await prisma.staffService.findMany({
     where: { serviceId },
     include: { user: true },
+    take: 100,
   });
 
   const dayOfWeek = new Date(date + "T12:00:00").getDay();
@@ -223,6 +224,7 @@ async function notifyWaitlist(businessId: string, serviceId: string, date: strin
       preferredDate: date,
       status: "WAITING",
     },
+    take: 100,
   });
 
   for (const entry of entries) {
